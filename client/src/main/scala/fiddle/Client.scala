@@ -204,24 +204,72 @@ class Client(){
 
   def streamingSet():  Future[(String, Option[String])] = {
     Client.clear()
-    js.eval("""var source = new EventSource("/Api/streaming")
-                                                      source.onopen = function(){
-                                                        $('.bar').css('width', '0%');
-                                                      }
-                                                      source.onmessage = function(message){
-                                                        var n = message.data;
-                                                        console.log("message '", n, "'");
-                                                        if (n.toString().indexOf("Finish") >=0 )  {
-                                                  //        source.close();
-                                                        }
 
-                                                        if(!isNaN(n)){
-                                                          $('.bar').css('width', n+'%');
-                                                        }
-                                                      }""")
+/*
+    js.eval(" var source = new EventSource(\"//api/fiddle/Api/streaming\")\n " +
+            " source.onopen = function(){\n $('.bar').css('width', '0%');\n    }\n   " +
+            " source.onmessage = function(message){\n      var n = message.data;\n     " +
+            " console.log(\"message '\", n, \"'\");\n      if (n.toString().indexOf(\"Finish\") >=0 )  {\n        source.close();\n      }\n      if(!isNaN(n)){\n        $('.bar').css('width', n+'%');\n      } \n    }")
+*/
+
+    //above js.eval doesn't seem to work. put the whole page here for now.
+
+    Page.output.innerHTML = """<!DOCTYPE html>
+                              <html lang="en">
+                                <head>
+                                  <meta charset="utf-8" />
+                                  <title>Event source example</title>
+                                  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                                  <meta name="description" content="" />
+                                  <meta name="author" content="Timothy Perrett" />
+                                  <link href="css/bootstrap.min.css" rel="stylesheet" />
+                                  <style type="text/css">
+                                    /*<![CDATA[*/
+                                    .container {
+                                      margin-top: 40px;
+                                      text-align: center;
+                                    }
+                                    /*]]>*/
+                                  </style>
+                                </head>
+                                <body>
+                              
+                                  <div class="container">
+                                    <h1>Event stream Example</h1>
+                                    <p>Use this document as a way to quick start any new project.<br>
+                                     All you get is this message and a barebones HTML document.</p>
+                              
+                                   <div class="span2">&nbsp;</div>
+                              
+                                   <div style="margin-bottom: 9px;" class="span8 progress progress-success progress-striped">
+                                      <div style="width: 0%" class="bar"></div>
+                                    </div>
+                              
+                                  </div> <!-- /container -->
+                              
+                                  <script type="text/javascript" src="js/jquery.min.js"></script>
+                                  <script type="text/javascript">
+                                  //<![CDATA[
+                                  var source = new EventSource("/sse/streaming")
+                                  source.onopen = function(){
+                                    $('.bar').css('width', '0%');
+                                  }
+                                  source.onmessage = function(message){
+                                    var n = message.data;
+                                    console.log("message '", n, "'");
+                                    if (n.toString().indexOf("Finish") >=0 )  {
+                                      source.close();
+                                    }
+                                    if(!isNaN(n)){
+                                      $('.bar').css('width', n+'%');
+                                    }
+                                  }
+                                  //]]>
+                                  </script>
+                                </body>
+                              </html>"""
 
     StreamingAjax[Api](_.streaming("streaming"))
-    //Future{("stream", None)}
   }
 
 

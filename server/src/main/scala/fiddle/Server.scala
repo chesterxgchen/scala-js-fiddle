@@ -78,7 +78,7 @@ object Server extends SimpleRoutingApp with Api{
                   )
                 )
               }
-            } ~ path("/api/fiddle/Api/streaming") {
+            } ~ path("api" / "fiddle" / "Api" / "streaming") {
               respondAsEventStream {
                 sendSSE
               }
