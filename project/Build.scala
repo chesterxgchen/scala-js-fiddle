@@ -95,6 +95,7 @@ object Build extends sbt.Build{
         "io.spray" %% "spray-caching" % "1.3.1",
         "io.spray" %% "spray-httpx" % "1.3.1",
         "io.spray" %% "spray-routing" % "1.3.1",
+        "io.spray" %% "spray-json" % "1.3.1",
         "org.scala-lang.modules.scalajs" % s"scalajs-compiler_${scalaVersion.value}" % "0.5.0",
         "org.scala-lang.modules.scalajs" %% "scalajs-tools" % "0.5.0",
         "org.scala-lang.modules" %% "scala-async" % "0.9.1" % "provided",

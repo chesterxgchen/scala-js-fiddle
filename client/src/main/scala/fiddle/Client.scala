@@ -15,6 +15,7 @@ import Client.RedLogger
 import scala.Some
 import autowire.Request
 import upickle.Implicits._
+
 @JSExport
 object Checker{
   /**
@@ -66,8 +67,20 @@ object Post extends autowire.Client[Web]{
   }
 }
 
-class Client(){
 
+object StreamingAjax extends autowire.Client[Web]{
+
+  override def callRequest(req: Request): Future[String] = {
+    val url = "/api/" + req.path.mkString("/")
+    logln("Calling " + url)
+    dom.extensions.Ajax.get(
+      url = Shared.url + url,
+      data = upickle.write(req.args)
+    ).map(_.responseText)
+  }
+}
+
+class Client(){
 
   Client.scheduleResets()
   val command = Channel[Future[(String, Option[String])]]()
@@ -107,7 +120,11 @@ class Client(){
     ("Complete", "Space", () => editor.complete()),
     ("FastOptimizeJavascript", "J", () => showJavascript(Post[Api](_.compile(editor.code)))),
     ("FullOptimizedJavascript", "Shift-J", () => showJavascript(Post[Api](_.fullOpt(editor.code)))),
-    ("Export", "E", export _)
+    ("Export", "E", export _) ,
+    ("evalDSL", "Y", () => showResults(evalDSL(editor.code))),
+    //("streaming", "Z", () => showResults(Post[Api](_.streaming(editor.code))) )
+    ("streaming", "Z", () => showResults(streamingSet()) )
+
   ), complete, RedLogger)
 
   logln("- ", blue("Cmd/Ctrl-Enter"), " to compile & execute, ", blue("Cmd/Ctrl-Space"), " for autocomplete.")
@@ -115,8 +132,6 @@ class Client(){
 
   def compile(res: Future[(String, Option[String])]): Future[Option[String]] = {
     res.map { case (logspam, result) =>
-
-
       logln(logspam)
       result match{
         case Some(c) =>
@@ -186,7 +201,76 @@ class Client(){
     val result = JsVal.parse(res.responseText)
     Util.Form.get("/gist/" + result("id").asString)
   }
+
+  def streamingSet():  Future[(String, Option[String])] = {
+    Client.clear()
+    js.eval("""var source = new EventSource("/Api/streaming")
+                                                      source.onopen = function(){
+                                                        $('.bar').css('width', '0%');
+                                                      }
+                                                      source.onmessage = function(message){
+                                                        var n = message.data;
+                                                        console.log("message '", n, "'");
+                                                        if (n.toString().indexOf("Finish") >=0 )  {
+                                                  //        source.close();
+                                                        }
+
+                                                        if(!isNaN(n)){
+                                                          $('.bar').css('width', n+'%');
+                                                        }
+                                                      }""")
+
+    StreamingAjax[Api](_.streaming("streaming"))
+    //Future{("stream", None)}
+  }
+
+
+  def showResults(compiled: Future[(String, Option[String])]) = {
+    compiled.collect{ case (logspam, Some(code)) =>
+      Client.clear()
+      Page.output.innerHTML = Page.highlight(code, "ace/mode/javascript")
+    }
+  }
+
+  def evalDSL(text: String): Future[(String, Option[String])] = {
+
+    def eval(dsl: String): Future[(String, Option[String])] = {
+
+      import EvalCommands._
+      val results = commands.filter(dsl.startsWith).map { cmd =>
+        val src = dsl.drop(dsl.indexOf(cmd) + cmd.length).trim
+
+        //route based on command
+        cmd match {
+          case Say => Future ((src, Some(src)))
+          case RunDSL => {
+            Post[Api](_.sparkSQLEval(src))
+          }
+          case RunWorkflow => {
+            import FlowCommand._
+            val cmd = src
+            cmd match {
+              case Show =>
+                logln("Drawing Workflow")
+                Client.clear()
+                Workflow.draw()
+                Future( (src, None))
+              case Run =>
+               // Post[Api](_.evalDSL(dsl))
+                //todo: not completed.
+               Future( (src, None))
+            }
+          }
+        }
+      }
+
+      if (results.isEmpty) Future("", None) else results.head
+    }
+
+    eval(text)
+  }
 }
+
 
 @JSExport
 object Client{

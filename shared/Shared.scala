@@ -24,7 +24,10 @@ object Shared{
 
   val gistId = "9443f8e0ecc68d1058ad"
 
-  val url = "http://localhost:8080"
+  //val url = "http://localhost:8080"
+  val defaultPort = 28080
+  val url = "http://localhost:" + defaultPort
+
 }
 
 class Web extends ClassfileAnnotation
@@ -37,4 +40,6 @@ trait Api{
   def export(compiled: String, source: String): String
   def `import`(compiled: String, source: String): String
   def completeStuff(txt: String, flag: String, offset: Int): List[(String, String)]
+  def sparkSQLEval(txt: String): (String, Option[String])
+  def streaming(txt: String) : (String, Option[String])
 }
